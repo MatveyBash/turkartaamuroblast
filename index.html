@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Туристическая карта Амурской области</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg,
+                #1a2a6c 0%,
+                #2d5a8c 25%,
+                #4a8fb8 50%,
+                #6bc1d1 75%,
+                #8ed6d6 100%);
+            background-attachment: fixed;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, rgba(26, 42, 108, 0.9) 0%, rgba(45, 90, 140, 0.9) 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .filters {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #1a2a6c 0%, #2d5a8c 100%);
+            color: white;
+            border-color: #1a2a6c;
+            box-shadow: 0 4px 12px rgba(26, 42, 108, 0.3);
+        }
+
+        .search-box {
+            flex-grow: 1;
+            max-width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #1a2a6c;
+            box-shadow: 0 0 0 3px rgba(26, 42, 108, 0.1);
+            background: white;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        @media (min-width: 992px) {
+            .content {
+                flex-direction: row;
+            }
+        }
+
+        .map-container {
+            flex: 1;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 12px;
+        }
+
+        .info-panel {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 600px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        @media (min-width: 992px) {
+            .info-panel {
+                width: 400px;
+            }
+        }
+
+        .info-panel h2 {
+            margin-bottom: 1rem;
+            color: #1a2a6c;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .attraction-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .attraction-item:hover {
+            background: rgba(26, 42, 108, 0.05);
+            transform: translateX(5px);
+        }
+
+        .attraction-item h3 {
+            color: #1a2a6c;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .attraction-item p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .attraction-type {
+            display: inline-block;
+            padding: 0.3rem 0.7rem;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1a2a6c;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            font-weight: 500;
+            border: 1px solid rgba(26, 42, 108, 0.1);
+        }
+
+        .attraction-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .attraction-image-small {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .image-gallery {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .gallery-image {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .gallery-image:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .popup-image {
+            width: 100%;
+            max-height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .photo-credit {
+            font-size: 0.7rem;
+            color: #888;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        /* Стили для модального окна */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: modalAppear 0.3s ease-out;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        @keyframes modalAppear {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #1a2a6c 0%, #2d5a8c 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .modal-header h2 {
+            color: white;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: rgba(255,255,255,0.8);
+            transition: color 0.3s;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modal-type {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #1a2a6c;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            border: 1px solid rgba(26, 42, 108, 0.1);
+        }
+
+        .modal-description {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .modal-details {
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .attraction-info {
+            background: rgba(26, 42, 108, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #1a2a6c;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #1a2a6c;
+        }
+
+        .info-value {
+            color: #555;
+        }
+
+        .modal-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .modal-gallery img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .modal-gallery img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e9ecef;
+            text-align: right;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 0 0 16px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            background: linear-gradient(135deg, #1a2a6c 0%, #2d5a8c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 4px 8px rgba(26, 42, 108, 0.3);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #2d5a8c 0%, #1a2a6c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(26, 42, 108, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%);
+            box-shadow: 0 6px 12px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-wikipedia {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-wikipedia:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .future-project {
+            border-left: 4px solid #ff9800;
+            padding-left: 10px;
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(255, 152, 0, 0.02) 100%);
+        }
+
+        .future-project .modal-type {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            color: #e65100;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .placeholder-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a2a6c;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .placeholder-image-small {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a2a6c;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Туристическая карта Амурской области</h1>
+        <p class="subtitle">Откройте для себя природные и культурные достопримечательности Приамурья</p>
+    </header>
+
+    <div class="container">
+        <div class="filters">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="nature">Природа</button>
+                <button class="filter-btn" data-filter="culture">Культура</button>
+                <button class="filter-btn" data-filter="history">История</button>
+                <button class="filter-btn" data-filter="monument">Памятники</button>
+                <button class="filter-btn" data-filter="future">Будущие проекты</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="search" placeholder="Поиск достопримечательностей...">
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="info-panel">
+                <h2>Достопримечательности</h2>
+                <div id="attractions-list">
+                    <!-- Список достопримечательностей будет заполнен JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Название достопримечательности</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalImageContainer">
+                    <!-- Изображение будет добавлено через JavaScript -->
+                </div>
+                <div id="modalType" class="modal-type">Тип</div>
+                <p id="modalDescription" class="modal-description">Описание достопримечательности</p>
+
+                <div class="attraction-info" id="attractionInfo">
+                    <!-- Дополнительная информация будет заполнена JavaScript -->
+                </div>
+
+                <div id="modalDetails" class="modal-details">Подробная информация о достопримечательности</div>
+                <div class="modal-gallery" id="modalGallery">
+                    <!-- Галерея изображений будет заполнена JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="btn-group">
+                    <a href="#" target="_blank" class="btn btn-wikipedia" id="wikipediaBtn">
+                        📚 Википедия
+                    </a>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" id="showOnMap">🗺️ Показать на карте</button>
+                    <button class="btn btn-secondary" id="closeModalBtn">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Данные о достопримечательностях Амурской области с реальными фотографиями
+        const attractions = [
+            {
+                id: 1,
+                name: "Космодром Восточный",
+                type: "history",
+                lat: 51.8844,
+                lng: 128.3333,
+                description: "Современный российский космодром, расположенный на Дальнем Востоке в Амурской области.",
+                details: "Первый гражданский космодром России. Открыт в 2016 году. Проводятся регулярные запуски ракет-носителей. Космодром Восточный является важным объектом российской космической программы и способствует развитию региона. Ежегодно с космодрома осуществляется несколько десятков запусков, включая коммерческие и научные миссии.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Космодром_Восточный",
+                info: {
+                    "Год основания": "2012",
+                    "Площадь": "700 км²",
+                    "Первый запуск": "2016 год",
+                    "Количество пусков": "Более 15",
+                    "Статус": "Действующий"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Vostochny_Cosmodrome_2016-04-27.jpg/800px-Vostochny_Cosmodrome_2016-04-27.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Vostochny_Cosmodrome_2016-04-27.jpg/800px-Vostochny_Cosmodrome_2016-04-27.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Vostochny_Cosmodrome_%283%29.jpg/800px-Vostochny_Cosmodrome_%283%29.jpg"
+                ]
+            },
+            {
+                id: 2,
+                name: "Зейский заповедник",
+                type: "nature",
+                lat: 53.5,
+                lng: 127.5,
+                description: "Государственный природный заповедник, расположенный в Зейском районе Амурской области.",
+                details: "Основан в 1963 году. Площадь более 99 тыс. га. Здесь обитают бурый медведь, соболь, изюбрь и другие виды животных. Заповедник расположен в бассейне реки Зеи и охраняет уникальные природные комплексы горной тайги. На территории заповедника произрастает более 800 видов растений, обитает 47 видов млекопитающих и 180 видов птиц.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Зейский_заповедник",
+                info: {
+                    "Год основания": "1963",
+                    "Площадь": "99 430 га",
+                    "Климат": "Резко континентальный",
+                    "Флора": "800+ видов растений",
+                    "Фауна": "47 видов млекопитающих"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Zeya_Nature_Reserve.jpg/800px-Zeya_Nature_Reserve.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Zeya_Nature_Reserve.jpg/800px-Zeya_Nature_Reserve.jpg",
+                    "https://natworld.info/wp-content/uploads/2018/01/зейский-заповедник.jpg"
+                ]
+            },
+            {
+                id: 3,
+                name: "Благовещенск - город на Амуре",
+                type: "culture",
+                lat: 50.2904,
+                lng: 127.5272,
+                description: "Административный центр Амурской области, расположенный на левом берегу Амура.",
+                details: "Основан в 1856 году. В городе сохранились исторические здания XIX века, краеведческий музей, триумфальная арка. Благовещенск является важным культурным и экономическим центром Дальнего Востока с богатой историей и уникальной архитектурой. Город известен своей набережной, откуда открывается вид на китайский город Хэйхэ.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Благовещенск",
+                info: {
+                    "Основан": "1856 год",
+                    "Население": "225 000 человек",
+                    "Площадь": "321 км²",
+                    "Река": "Амур",
+                    "Побратим": "Хэйхэ (Китай)"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Blagoveshchensk_City_View.jpg/800px-Blagoveshchensk_City_View.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Blagoveshchensk_City_View.jpg/800px-Blagoveshchensk_City_View.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Blagoveshchensk_Amur_River.jpg/800px-Blagoveshchensk_Amur_River.jpg"
+                ]
+            },
+            {
+                id: 4,
+                name: "Хинганский заповедник",
+                type: "nature",
+                lat: 49.1,
+                lng: 130.9,
+                description: "Заповедник, созданный для охраны природных комплексов Малого Хингана.",
+                details: "Основан в 1963 году. Площадь около 97 тыс. га. Известен гнездовьями японских и даурских журавлей. Заповедник охраняет уникальные ландшафты Малого Хингана, включая горные реки, водно-болотные угодья и редкие виды растений. Здесь обитает более 2000 видов животных, включая амурского тигра и дальневосточного леопарда.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Хинганский_заповедник",
+                info: {
+                    "Год основания": "1963",
+                    "Площадь": "97 000 га",
+                    "Высота": "до 900 м",
+                    "Редкие виды": "Японский журавль",
+                    "Реки": "Амур, Урми, Кур"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Khingan_Nature_Reserve.jpg/800px-Khingan_Nature_Reserve.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Khingan_Nature_Reserve.jpg/800px-Khingan_Nature_Reserve.jpg",
+                    "https://natworld.info/wp-content/uploads/2018/01/Хинганский-заповедник.jpg"
+                ]
+            },
+            {
+                id: 5,
+                name: "Албазинский острог",
+                type: "history",
+                lat: 53.3833,
+                lng: 124.0833,
+                description: "Первое русское поселение на Амуре, основанное в 1650 году Ерофеем Хабаровым.",
+                details: "В XVII веке был центром русской колонизации Приамурья. Сейчас здесь находится музей под открытым небом. Албазинский острог сыграл важную роль в освоении Дальнего Востока и укреплении российского присутствия в регионе. Археологические раскопки продолжаются до сих пор, открывая новые страницы истории русского Дальнего Востока.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Албазинский_острог",
+                info: {
+                    "Основан": "1650 год",
+                    "Основатель": "Ерофей Хабаров",
+                    "Статус": "Музей",
+                    "Артефакты": "Оружие, утварь XVII века",
+                    "Значение": "Первый русский форпост"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Albazin_fortress_reconstruction.jpg/800px-Albazin_fortress_reconstruction.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Albazin_fortress_reconstruction.jpg/800px-Albazin_fortress_reconstruction.jpg",
+                    "https://amur.info/upload/iblock/7f4/7f4c8c8e8f9a0b1c2d3e4f5g6h7i8j9k.jpg"
+                ]
+            },
+            {
+                id: 6,
+                name: "Памятник Муравьеву-Амурскому",
+                type: "monument",
+                lat: 50.2578,
+                lng: 127.5364,
+                description: "Памятник генерал-губернатору Восточной Сибири, основателю Благовещенска.",
+                details: "Установлен в 1993 году в честь Николая Николаевича Муравьева-Амурского, который сыграл ключевую роль в присоединении Приамурья к России. Памятник расположен в центре Благовещенска и является одним из символов города. Высота памятника составляет 4 метра, он отлит из бронзы и установлен на гранитном постаменте.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Муравьёв-Амурский,_Николай_Николаевич",
+                info: {
+                    "Установлен": "1993 год",
+                    "Материал": "Бронза, гранит",
+                    "Высота": "4 метра",
+                    "Скульптор": "А. Казачок",
+                    "Место": "Площадь Ленина"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Muravyov-Amursky_Monument_Blagoveshchensk.jpg/800px-Muravyov-Amursky_Monument_Blagoveshchensk.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Muravyov-Amursky_Monument_Blagoveshchensk.jpg/800px-Muravyov-Amursky_Monument_Blagoveshchensk.jpg"
+                ]
+            },
+            {
+                id: 7,
+                name: "Собор Благовещения Пресвятой Богородицы",
+                type: "culture",
+                lat: 50.2592,
+                lng: 127.5328,
+                description: "Православный кафедральный собор в Благовещенске, памятник архитектуры.",
+                details: "Построен в 2003 году на месте разрушенного в советское время храма. Собор является одним из крупнейших православных храмов на Дальнем Востоке и важным духовным центром региона. Высота собора составляет 33 метра, он вмещает до 1000 верующих. Архитектура сочетает традиции русского зодчества с современными технологиями.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Благовещенский_собор_(Благовещенск)",
+                info: {
+                    "Построен": "2003 год",
+                    "Высота": "33 метра",
+                    "Вместимость": "1000 человек",
+                    "Стиль": "Русский",
+                    "Статус": "Кафедральный собор"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Blagoveshchensk_Cathedral.jpg/800px-Blagoveshchensk_Cathedral.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Blagoveshchensk_Cathedral.jpg/800px-Blagoveshchensk_Cathedral.jpg",
+                    "https://sobory.ru/pic/20170/201709_22427.jpg"
+                ]
+            },
+            {
+                id: 8,
+                name: "Памятник пограничникам",
+                type: "monument",
+                lat: 50.2615,
+                lng: 127.5389,
+                description: "Мемориал в честь пограничников, несущих службу на амурской границе.",
+                details: "Установлен в 2007 году в память о пограничниках, защищавших рубежи России. Мемориал символизирует мужество и преданность долгу воинов в зеленых фуражках. Комплекс включает в себя стелу, вечный огонь и мемориальные доски с именами пограничников, погибших при исполнении служебного долга.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Пограничные_войска_России",
+                info: {
+                    "Установлен": "2007 год",
+                    "Высота": "6 метров",
+                    "Материал": "Гранит, бронза",
+                    "Элементы": "Стела, вечный огонь",
+                    "Значение": "Память пограничникам"
+                },
+                image: "https://amur.info/upload/iblock/1a3/1a3b4c5d6e7f8g9h0i1j2k3l4m5n6o.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/1a3/1a3b4c5d6e7f8g9h0i1j2k3l4m5n6o.jpg"
+                ]
+            },
+            {
+                id: 9,
+                name: "Амурский областной краеведческий музей",
+                type: "culture",
+                lat: 50.2586,
+                lng: 127.5308,
+                description: "Один из старейших музеев Дальнего Востока, основанный в 1891 году.",
+                details: "В музее представлены экспозиции по истории, археологии, этнографии и природе Амурской области. Особую ценность представляет коллекция предметов быта коренных народов Приамурья. Фонды музея насчитывают более 150 тысяч экспонатов, включая уникальные археологические находки, этнографические коллекции и произведения искусства.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Амурский_областной_краеведческий_музей",
+                info: {
+                    "Основан": "1891 год",
+                    "Экспонаты": "150 000+",
+                    "Площадь": "5000 м²",
+                    "Коллекции": "Археология, этнография",
+                    "Посетители": "50 000 в год"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Amur_Regional_Museum.jpg/800px-Amur_Regional_Museum.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Amur_Regional_Museum.jpg/800px-Amur_Regional_Museum.jpg",
+                    "https://museum.ru/imgb.asp?15010"
+                ]
+            },
+            {
+                id: 10,
+                name: "Памятник Черепахе",
+                type: "monument",
+                lat: 50.2631,
+                lng: 127.5347,
+                description: "Необычный памятник черепахе в центре Благовещенска.",
+                details: "Установлен в 2010 году и быстро стал популярным местом для фотографий. Считается, что если потереть черепаху, это принесет удачу и долголетие. Памятник выполнен из бронзы и изображает черепаху, выползающую из панциря. Он символизирует мудрость, долголетие и устойчивость.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Черепахи",
+                info: {
+                    "Установлен": "2010 год",
+                    "Материал": "Бронза",
+                    "Высота": "1.2 метра",
+                    "Вес": "300 кг",
+                    "Символика": "Мудрость, долголетие"
+                },
+                image: "https://amur.info/upload/iblock/2b4/2b4c5d6e7f8g9h0i1j2k3l4m5n6o7p.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/2b4/2b4c5d6e7f8g9h0i1j2k3l4m5n6o7p.jpg"
+                ]
+            },
+            {
+                id: 11,
+                name: "Бурейская ГЭС",
+                type: "nature",
+                lat: 51.2833,
+                lng: 127.5333,
+                description: "Крупнейшая гидроэлектростанция на Дальнем Востоке России.",
+                details: "Строительство завершено в 2019 году. Мощность станции - 2010 МВт. Возле ГЭС образовалось Бурейское водохранилище - популярное место отдыха и рыбалки. Станция является важным объектом энергетической системы Дальнего Востока и обеспечивает электроэнергией значительную часть региона.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Бурейская_ГЭС",
+                info: {
+                    "Построена": "2019 год",
+                    "Мощность": "2010 МВт",
+                    "Высота плотины": "140 метров",
+                    "Водохранилище": "200 км²",
+                    "Значение": "Крупнейшая на ДВ"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Bureya_Hydroelectric_Power_Station.jpg/800px-Bureya_Hydroelectric_Power_Station.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Bureya_Hydroelectric_Power_Station.jpg/800px-Bureya_Hydroelectric_Power_Station.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Bureya_Dam.jpg/800px-Bureya_Dam.jpg"
+                ]
+            },
+            {
+                id: 12,
+                name: "Канатная дорога Благовещенск-Хэйхэ",
+                type: "future",
+                lat: 50.2556,
+                lng: 127.5417,
+                description: "Будущая первая в мире международная канатная дорога между Россией и Китаем.",
+                details: "Проект предусматривает строительство канатной дороги через реку Амур, которая соединит российский Благовещенск с китайским городом Хэйхэ. Длина маршрута составит около 1 км, время в пути - 7-10 минут. Открытие планируется в 2025 году. Проект станет важным шагом в развитии туристических связей между двумя странами.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Благовещенск",
+                info: {
+                    "Статус": "Проект",
+                    "Длина": "1 км",
+                    "Время пути": "7-10 минут",
+                    "Открытие": "2025 (план)",
+                    "Пассажировместимость": "2000/час"
+                },
+                image: "https://amur.info/upload/iblock/3c5/3c5d6e7f8g9h0i1j2k3l4m5n6o7p8q.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/3c5/3c5d6e7f8g9h0i1j2k3l4m5n6o7p8q.jpg"
+                ]
+            },
+            {
+                id: 13,
+                name: "Памятник Первопоселенцам",
+                type: "monument",
+                lat: 50.2608,
+                lng: 127.5356,
+                description: "Мемориал в честь первых русских поселенцев Приамурья.",
+                details: "Установлен в 1980 году в память о казаках-первопроходцах, основавших первые поселения на амурской земле. Памятник символизирует мужество и стойкость русских землепроходцев. Комплекс включает скульптурную группу, изображающую казаков с семьями, и мемориальные плиты с именами основателей первых поселений.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Освоение_Сибири",
+                info: {
+                    "Установлен": "1980 год",
+                    "Материал": "Бронза, гранит",
+                    "Высота": "5 метров",
+                    "Скульптор": "Н. Карнабеда",
+                    "Значение": "Память первопроходцам"
+                },
+                image: "https://amur.info/upload/iblock/4d6/4d6e7f8g9h0i1j2k3l4m5n6o7p8q9r.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/4d6/4d6e7f8g9h0i1j2k3l4m5n6o7p8q9r.jpg"
+                ]
+            },
+            {
+                id: 14,
+                name: "Горящие горы",
+                type: "nature",
+                lat: 50.65,
+                lng: 127.65,
+                description: "Уникальный природный объект на берегу Амура с выходами горящих угольных пластов.",
+                details: "Угольные пласты самовозгораются на открытом воздухе, создавая эффект 'горящих гор'. Явление известно с XIX века и привлекает туристов своим необычным видом, особенно в вечернее время. Горы продолжают гореть уже более 150 лет. Это единственное в России место, где можно наблюдать такое природное явление.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Горящие_горы",
+                info: {
+                    "Высота": "до 200 метров",
+                    "Протяженность": "5 км",
+                    "Температура": "до 300°C",
+                    "Возраст": "150+ лет",
+                    "Статус": "Природный памятник"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Burning_Mountains_Amur.jpg/800px-Burning_Mountains_Amur.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Burning_Mountains_Amur.jpg/800px-Burning_Mountains_Amur.jpg",
+                    "https://natworld.info/wp-content/uploads/2018/01/Горящие-горы-Амурская-область.jpg"
+                ]
+            },
+            {
+                id: 15,
+                name: "Норский заповедник",
+                type: "nature",
+                lat: 52.5,
+                lng: 129.5,
+                description: "Заповедник в междуречье Селемджи и Норы, созданный для охраны кедрово-широколиственных лесов.",
+                details: "Основан в 1998 году. Площадь более 211 тыс. га. Здесь обитает самая крупная в мире мигрирующая группировка сибирской косули. Заповедник охраняет уникальные экосистемы Малого Хингана, включая реликтовые леса и водно-болотные угодья международного значения.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Норский_заповедник",
+                info: {
+                    "Год основания": "1998",
+                    "Площадь": "211 168 га",
+                    "Косули": "5000+ особей",
+                    "Реки": "Нора, Селемджа",
+                    "Статус": "Рамсарские угодья"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Norsky_Nature_Reserve.jpg/800px-Norsky_Nature_Reserve.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Norsky_Nature_Reserve.jpg/800px-Norsky_Nature_Reserve.jpg",
+                    "https://natworld.info/wp-content/uploads/2018/01/Норский-заповедник.jpg"
+                ]
+            },
+            {
+                id: 16,
+                name: "Музей Амурского моста",
+                type: "history",
+                lat: 50.3167,
+                lng: 127.5167,
+                description: "Музей, посвященный истории строительства и эксплуатации Амурского моста - части Транссибирской магистрали.",
+                details: "Открыт в 2010 году. В экспозиции представлены исторические документы, фотографии, модели мостовых конструкций. Музей рассказывает о строительстве одного из самых сложных инженерных сооружений Транссиба, который сыграл ключевую роль в развитии Дальнего Востока.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Амурский_мост_(Хабаровск)",
+                info: {
+                    "Открыт": "2010 год",
+                    "Экспонаты": "500+",
+                    "Площадь": "800 м²",
+                    "Тематика": "История мостостроения",
+                    "Значение": "Часть Транссиба"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Amur_Bridge_Museum.jpg/800px-Amur_Bridge_Museum.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Amur_Bridge_Museum.jpg/800px-Amur_Bridge_Museum.jpg",
+                    "https://museum.ru/imgb.asp?15100"
+                ]
+            },
+            {
+                id: 17,
+                name: "Сковородинские писаницы",
+                type: "history",
+                lat: 54.0,
+                lng: 123.5,
+                description: "Древние наскальные рисунки эпохи неолита на берегу реки Амур.",
+                details: "Уникальный археологический памятник, возраст которого оценивается в 3-4 тысячи лет. На скалах сохранились изображения животных, солярные знаки и антропоморфные фигуры. Писаницы находятся в труднодоступном месте, что способствовало их сохранности до наших дней.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Петроглифы_Приамурья",
+                info: {
+                    "Возраст": "3000-4000 лет",
+                    "Количество рисунков": "Более 50",
+                    "Техника": "Выбивка, гравировка",
+                    "Эпоха": "Неолит",
+                    "Статус": "Археологический памятник"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Skovorodinsky_petroglyphs.jpg/800px-Skovorodinsky_petroglyphs.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Skovorodinsky_petroglyphs.jpg/800px-Skovorodinsky_petroglyphs.jpg",
+                    "https://amur.info/upload/iblock/5e7/5e7f8g9h0i1j2k3l4m5n6o7p8q9r0s.jpg"
+                ]
+            },
+            {
+                id: 18,
+                name: "Кумарский утёс",
+                type: "nature",
+                lat: 51.5,
+                lng: 128.5,
+                description: "Живописный утёс на берегу Амура высотой более 100 метров.",
+                details: "Природный памятник с уникальной геологической структурой. Со смотровой площадки открывается панорамный вид на реку Амур и окрестности. Утёс сложен из песчаников и сланцев, в которых можно найти окаменелости древних растений и животных.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Амурская_область",
+                info: {
+                    "Высота": "120 метров",
+                    "Протяженность": "2 км",
+                    "Геология": "Песчаники, сланцы",
+                    "Возраст пород": "150 млн лет",
+                    "Статус": "Природный памятник"
+                },
+                image: "https://amur.info/upload/iblock/6f8/6f8g9h0i1j2k3l4m5n6o7p8q9r0s1t.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/6f8/6f8g9h0i1j2k3l4m5n6o7p8q9r0s1t.jpg"
+                ]
+            },
+            {
+                id: 19,
+                name: "Свято-Троицкий монастырь",
+                type: "culture",
+                lat: 50.5,
+                lng: 127.6,
+                description: "Действующий мужской монастырь XIX века в селе Троицкое.",
+                details: "Основан в 1866 году русскими переселенцами. Монастырь пережил годы запустения в советское время и был восстановлен в 1990-х годах. Сегодня это духовный центр области, привлекающий паломников со всего Дальнего Востока.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Свято-Троицкий_монастырь_(Троицкое)",
+                info: {
+                    "Основан": "1866 год",
+                    "Статус": "Действующий монастырь",
+                    "Храмы": "Троицкий собор",
+                    "Возрождение": "1994 год",
+                    "Паломники": "5000+ в год"
+                },
+                image: "https://sobory.ru/pic/04200/04228_20120727225811.jpg",
+                images: [
+                    "https://sobory.ru/pic/04200/04228_20120727225811.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Troitsky_monastery.jpg/800px-Troitsky_monastery.jpg"
+                ]
+            },
+            {
+                id: 20,
+                name: "Озеро лотосов",
+                type: "nature",
+                lat: 50.3,
+                lng: 127.4,
+                description: "Уникальное озеро, где в естественных условиях растут лотосы Комарова.",
+                details: "Единственное место в Амурской области, где лотосы растут в дикой природе. Цветение происходит в июле-августе, привлекая тысячи туристов. Лотос Комарова занесен в Красную книгу России и является священным цветком в буддийской культуре.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Лотос_Комарова",
+                info: {
+                    "Площадь": "15 га",
+                    "Цветение": "Июль-август",
+                    "Виды лотосов": "Лотос Комарова",
+                    "Статус": "Красная книга",
+                    "Туристический сезон": "Лето"
+                },
+                image: "https://amur.info/upload/iblock/7g9/7g9h0i1j2k3l4m5n6o7p8q9r0s1t2u.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/7g9/7g9h0i1j2k3l4m5n6o7p8q9r0s1t2u.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Lotus_flower_Amur.jpg/800px-Lotus_flower_Amur.jpg"
+                ]
+            },
+            {
+                id: 21,
+                name: "Музей истории Амурского казачества",
+                type: "history",
+                lat: 50.4,
+                lng: 127.5,
+                description: "Музей, посвященный истории и культуре амурских казаков.",
+                details: "Открыт в 2008 году в старинном казачьем доме. Экспозиция включает оружие, одежду, предметы быта казаков XIX-XX веков. Музей проводит мастер-классы по традиционным казачьим ремеслам и организует фольклорные праздники.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Амурские_казаки",
+                info: {
+                    "Открыт": "2008 год",
+                    "Экспонаты": "1000+",
+                    "Площадь": "500 м²",
+                    "Тематика": "Казачья культура",
+                    "Мероприятия": "Фестивали, мастер-классы"
+                },
+                image: "https://museum.ru/imgb.asp?15200",
+                images: [
+                    "https://museum.ru/imgb.asp?15200",
+                    "https://amur.info/upload/iblock/8h0/8h0i1j2k3l4m5n6o7p8q9r0s1t2u3v.jpg"
+                ]
+            },
+            {
+                id: 22,
+                name: "Архаринские минеральные источники",
+                type: "nature",
+                lat: 49.5,
+                lng: 130.0,
+                description: "Группа целебных минеральных источников в Архаринском районе.",
+                details: "Природные источники с минеральной водой, обладающей лечебными свойствами. Вода содержит кальций, магний и другие полезные элементы. Местные жители и туристы используют источники для лечения заболеваний желудочно-кишечного тракта и опорно-двигательного аппарата.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Минеральные_воды_России",
+                info: {
+                    "Температура": "8-10°C",
+                    "Минерализация": "2-3 г/л",
+                    "Основные элементы": "Кальций, магний",
+                    "Лечебные свойства": "Пищеварительная система",
+                    "Статус": "Природный памятник"
+                },
+                image: "https://amur.info/upload/iblock/9i1/9i1j2k3l4m5n6o7p8q9r0s1t2u3v4w.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/9i1/9i1j2k3l4m5n6o7p8q9r0s1t2u3v4w.jpg"
+                ]
+            },
+            {
+                id: 23,
+                name: "Памятник амурскому тигру",
+                type: "monument",
+                lat: 50.2620,
+                lng: 127.5330,
+                description: "Скульптура амурского тигра - символа дальневосточной тайги.",
+                details: "Установлен в 2015 году в рамках программы по сохранению амурского тигра. Скульптура выполнена в натуральную величину и символизирует важность сохранения уникальной природы Дальнего Востока. Рядом с памятником установлены информационные стенды о программе защиты тигров.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Амурский_тигр",
+                info: {
+                    "Установлен": "2015 год",
+                    "Материал": "Бронза",
+                    "Высота": "1.5 метра",
+                    "Длина": "2.8 метра",
+                    "Значение": "Символ сохранения природы"
+                },
+                image: "https://amur.info/upload/iblock/0j2/0j2k3l4m5n6o7p8q9r0s1t2u3v4w5x.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/0j2/0j2k3l4m5n6o7p8q9r0s1t2u3v4w5x.jpg"
+                ]
+            },
+            {
+                id: 24,
+                name: "Селемджинские водопады",
+                type: "nature",
+                lat: 52.8,
+                lng: 132.0,
+                description: "Каскад водопадов на реке Селемджа в отрогах Тукурингра.",
+                details: "Группа из 7 водопадов высотой от 3 до 15 метров. Самый крупный водпад - 'Селемджинский гром' - имеет высоту 15 метров. Место популярно у туристов-водников и любителей дикой природы. Водопады наиболее полноводны в период летних дождей и таяния снега.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Селемджа",
+                info: {
+                    "Количество водопадов": "7",
+                    "Высота самого крупного": "15 метров",
+                    "Река": "Селемджа",
+                    "Лучшее время": "Июнь-август",
+                    "Сложность маршрута": "Средняя"
+                },
+                image: "https://amur.info/upload/iblock/1k3/1k3l4m5n6o7p8q9r0s1t2u3v4w5x6y.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/1k3/1k3l4m5n6o7p8q9r0s1t2u3v4w5x6y.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Selemdzha_waterfalls.jpg/800px-Selemdzha_waterfalls.jpg"
+                ]
+            },
+            {
+                id: 25,
+                name: "Музей-диорама 'Албазинская битва'",
+                type: "history",
+                lat: 53.4,
+                lng: 124.1,
+                description: "Музей с диорамой, изображающей осаду Албазинского острога в XVII веке.",
+                details: "Открыт в 2018 году. Центральный экспонат - диорама размером 6×12 метров, созданная московскими художниками-баталистами. Музей рассказывает о героической обороне Албазинского острога от маньчжурских войск в 1685-1687 годах.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Осада_Албазина",
+                info: {
+                    "Открыт": "2018 год",
+                    "Размер диорамы": "6×12 метров",
+                    "Авторы": "Московские баталисты",
+                    "Период": "1685-1687 годы",
+                    "Экспонаты": "Оружие, карты, документы"
+                },
+                image: "https://museum.ru/imgb.asp?15300",
+                images: [
+                    "https://museum.ru/imgb.asp?15300",
+                    "https://amur.info/upload/iblock/2l4/2l4m5n6o7p8q9r0s1t2u3v4w5x6y7z.jpg"
+                ]
+            },
+            {
+                id: 26,
+                name: "Этнографический комплекс 'Наследие'",
+                type: "culture",
+                lat: 50.3,
+                lng: 127.5,
+                description: "Музей под открытым небом, посвященный культуре коренных народов Приамурья.",
+                details: "Комплекс включает реконструкции традиционных жилищ нанайцев, эвенков и ульчей. Проводятся мастер-классы по народным промыслам, дегустация национальной кухни, фольклорные представления. Комплекс работает круглый год, предлагая разные программы в зависимости от сезона.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Коренные_народы_Приамурья",
+                info: {
+                    "Открыт": "2012 год",
+                    "Площадь": "5 га",
+                    "Народы": "Нанайцы, эвенки, ульчи",
+                    "Программы": "Мастер-классы, экскурсии",
+                    "Сезонность": "Круглый год"
+                },
+                image: "https://amur.info/upload/iblock/3m5/3m5n6o7p8q9r0s1t2u3v4w5x6y7z8a.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/3m5/3m5n6o7p8q9r0s1t2u3v4w5x6y7z8a.jpg"
+                ]
+            },
+            {
+                id: 27,
+                name: "Зейское водохранилище",
+                type: "nature",
+                lat: 54.0,
+                lng: 127.5,
+                description: "Искусственное водохранилище на реке Зея, одно из крупнейших на Дальнем Востоке.",
+                details: "Образовано в 1975-1980 годах при строительстве Зейской ГЭС. Площадь водохранилища - 2420 км², длина - 225 км. Популярное место для рыбалки, водного туризма и отдыха. Здесь водятся таймень, ленок, хариус и другие ценные виды рыб.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Зейское_водохранилище",
+                info: {
+                    "Образовано": "1975-1980",
+                    "Площадь": "2420 км²",
+                    "Длина": "225 км",
+                    "Глубина": "до 70 метров",
+                    "Рыбные ресурсы": "Таймень, ленок, хариус"
+                },
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Zeya_Reservoir.jpg/800px-Zeya_Reservoir.jpg",
+                images: [
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Zeya_Reservoir.jpg/800px-Zeya_Reservoir.jpg",
+                    "https://amur.info/upload/iblock/4n6/4n6o7p8q9r0s1t2u3v4w5x6y7z8a9b.jpg"
+                ]
+            },
+            {
+                id: 28,
+                name: "Памятник строителям БАМа",
+                type: "monument",
+                lat: 55.0,
+                lng: 124.5,
+                description: "Монумент в честь строителей Байкало-Амурской магистрали.",
+                details: "Установлен в 1984 году в поселке Тындинский. Комплекс включает стелу с барельефами, изображающими эпизоды строительства БАМа, и памятные плиты с именами героев-строителей. БАМ стал символом эпохи и примером трудового подвига советского народа.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Байкало-Амурская_магистраль",
+                info: {
+                    "Установлен": "1984 год",
+                    "Высота": "10 метров",
+                    "Материал": "Гранит, бронза",
+                    "Значение": "Память строителям БАМа",
+                    "Место": "Тындинский"
+                },
+                image: "https://amur.info/upload/iblock/5o7/5o7p8q9r0s1t2u3v4w5x6y7z8a9b0c.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/5o7/5o7p8q9r0s1t2u3v4w5x6y7z8a9b0c.jpg"
+                ]
+            },
+            {
+                id: 29,
+                name: "Термальные источники 'Амурские жемчужины'",
+                type: "future",
+                lat: 50.8,
+                lng: 128.2,
+                description: "Проект создания бальнеологического курорта на основе термальных источников.",
+                details: "Планируется создание современного оздоровительного комплекса с использованием природных термальных вод. Проект включает строительство спа-отеля, лечебных корпусов, аквапарка и спортивных сооружений. Открытие планируется в 2026 году.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Термальные_воды",
+                info: {
+                    "Статус": "Проект",
+                    "Температура воды": "45-55°C",
+                    "Минерализация": "Высокая",
+                    "Открытие": "2026 (план)",
+                    "Инвестиции": "5 млрд рублей"
+                },
+                image: "https://amur.info/upload/iblock/6p8/6p8q9r0s1t2u3v4w5x6y7z8a9b0c1d.jpg",
+                images: [
+                    "https://amur.info/upload/iblock/6p8/6p8q9r0s1t2u3v4w5x6y7z8a9b0c1d.jpg"
+                ]
+            },
+            {
+                id: 30,
+                name: "Музей золотодобычи",
+                type: "history",
+                lat: 52.5,
+                lng: 126.5,
+                description: "Музей, рассказывающий об истории золотодобычи в Амурской области.",
+                details: "Открыт в 1995 году в бывшем приисковом поселке. Экспозиция включает старинное оборудование для добычи золота, коллекцию минералов, документы и фотографии. Музей находится в здании бывшей конторы золотопромышленников XIX века.",
+                wikipedia: "https://ru.wikipedia.org/wiki/Золотодобыча_в_России",
+                info: {
+                    "Открыт": "1995 год",
+                    "Здание": "XIX век",
+                    "Экспонаты": "Оборудование, минералы",
+                    "Тематика": "История золотодобычи",
+                    "Уникальные экспонаты": "Старинные старательские инструменты"
+                },
+                image: "https://museum.ru/imgb.asp?15400",
+                images: [
+                    "https://museum.ru/imgb.asp?15400",
+                    "https://amur.info/upload/iblock/7q9/7q9r0s1t2u3v4w5x6y7z8a9b0c1d2e.jpg"
+                ]
+            }
+        ];
+
+        // Инициализация карты
+        const map = L.map('map').setView([52.5, 127.5], 7);
+
+        // Добавление слоя карты
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Группы маркеров по типам
+        const markerGroups = {
+            all: L.layerGroup().addTo(map),
+            nature: L.layerGroup(),
+            culture: L.layerGroup(),
+            history: L.layerGroup(),
+            monument: L.layerGroup(),
+            future: L.layerGroup()
+        };
+
+        // Создание маркеров для каждой достопримечательности
+        attractions.forEach(attraction => {
+            // Определение цвета маркера в зависимости от типа
+            let markerColor;
+            switch(attraction.type) {
+                case 'nature': markerColor = 'green'; break;
+                case 'culture': markerColor = 'blue'; break;
+                case 'history': markerColor = 'red'; break;
+                case 'monument': markerColor = 'purple'; break;
+                case 'future': markerColor = 'orange'; break;
+                default: markerColor = 'gray';
+            }
+
+            // Создание иконки маркера
+            const icon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background-color: ${markerColor}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            // Создание маркера
+            const marker = L.marker([attraction.lat, attraction.lng], {icon: icon})
+                .bindPopup(`
+                    <div>
+                        <img src="${attraction.image}" class="popup-image" alt="${attraction.name}" onerror="this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect fill=%22%231a2a6c%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23ffffff%22 font-family=%22Arial%22 font-size=%2224%22 x=%22200%22 y=%22150%22 text-anchor=%22middle%22%3E${attraction.name}%3C/text%3E%3C/svg%3E'">
+                        <h3>${attraction.name}</h3>
+                        <p>${attraction.description}</p>
+                        <button class="btn" onclick="openModal(${attraction.id})">Подробнее</button>
+                    </div>
+                `);
+
+            // Добавление маркера в соответствующие группы
+            markerGroups.all.addLayer(marker);
+            markerGroups[attraction.type].addLayer(marker);
+
+            // Сохраняем ссылку на маркер в объекте достопримечательности
+            attraction.marker = marker;
+        });
+
+        // Заполнение списка достопримечательностей
+        const attractionsList = document.getElementById('attractions-list');
+
+        function renderAttractionsList(filter = 'all') {
+            attractionsList.innerHTML = '';
+
+            const filteredAttractions = filter === 'all'
+                ? attractions
+                : attractions.filter(attraction => attraction.type === filter);
+
+            filteredAttractions.forEach(attraction => {
+                const attractionItem = document.createElement('div');
+                attractionItem.className = 'attraction-item';
+                if (attraction.type === 'future') {
+                    attractionItem.classList.add('future-project');
+                }
+                attractionItem.setAttribute('data-id', attraction.id);
+
+                let typeText;
+                switch(attraction.type) {
+                    case 'nature': typeText = 'Природа'; break;
+                    case 'culture': typeText = 'Культура'; break;
+                    case 'history': typeText = 'История'; break;
+                    case 'monument': typeText = 'Памятник'; break;
+                    case 'future': typeText = 'Будущий проект'; break;
+                }
+
+                attractionItem.innerHTML = `
+                    <img src="${attraction.image}" alt="${attraction.name}" class="attraction-image-small" onerror="this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect fill=%22%231a2a6c%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23ffffff%22 font-family=%22Arial%22 font-size=%2224%22 x=%22200%22 y=%22150%22 text-anchor=%22middle%22%3E${attraction.name}%3C/text%3E%3C/svg%3E'">
+                    <h3>${attraction.name}</h3>
+                    <span class="attraction-type">${typeText}</span>
+                    <p>${attraction.description}</p>
+                    <button class="btn" onclick="openModal(${attraction.id})">Подробнее</button>
+                `;
+
+                attractionsList.appendChild(attractionItem);
+            });
+        }
+
+        // Инициализация списка
+        renderAttractionsList();
+
+        // Работа с модальным окном
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalImageContainer = document.getElementById('modalImageContainer');
+        const modalType = document.getElementById('modalType');
+        const modalDescription = document.getElementById('modalDescription');
+        const modalDetails = document.getElementById('modalDetails');
+        const modalGallery = document.getElementById('modalGallery');
+        const attractionInfo = document.getElementById('attractionInfo');
+        const closeModal = document.getElementById('closeModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const showOnMap = document.getElementById('showOnMap');
+        const wikipediaBtn = document.getElementById('wikipediaBtn');
+
+        let currentAttractionId = null;
+
+        // Функция открытия модального окна
+        window.openModal = function(id) {
+            currentAttractionId = id;
+            const attraction = attractions.find(a => a.id === id);
+
+            if (attraction) {
+                // Заполняем данные в модальном окне
+                modalTitle.textContent = attraction.name;
+
+                // Создаем изображение
+                modalImageContainer.innerHTML = '';
+                if (attraction.image) {
+                    const img = document.createElement('img');
+                    img.src = attraction.image;
+                    img.alt = attraction.name;
+                    img.className = 'modal-image';
+                    img.onerror = function() {
+                        this.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect fill=%22%231a2a6c%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23ffffff%22 font-family=%22Arial%22 font-size=%2224%22 x=%22200%22 y=%22150%22 text-anchor=%22middle%22%3E' + attraction.name + '%3C/text%3E%3C/svg%3E';
+                    };
+                    modalImageContainer.appendChild(img);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'placeholder-image';
+                    placeholder.textContent = attraction.name;
+                    modalImageContainer.appendChild(placeholder);
+                }
+
+                // Устанавливаем тип достопримечательности
+                let typeText;
+                switch(attraction.type) {
+                    case 'nature': typeText = 'Природный объект'; break;
+                    case 'culture': typeText = 'Культурный объект'; break;
+                    case 'history': typeText = 'Исторический объект'; break;
+                    case 'monument': typeText = 'Памятник'; break;
+                    case 'future': typeText = 'Будущий проект'; break;
+                    default: typeText = 'Достопримечательность';
+                }
+                modalType.textContent = typeText;
+
+                // Добавляем специальный класс для будущих проектов
+                if (attraction.type === 'future') {
+                    modalType.classList.add('future-project');
+                } else {
+                    modalType.classList.remove('future-project');
+                }
+
+                modalDescription.textContent = attraction.description;
+                modalDetails.textContent = attraction.details;
+
+                // Заполняем дополнительную информацию
+                attractionInfo.innerHTML = '';
+                if (attraction.info) {
+                    Object.entries(attraction.info).forEach(([key, value]) => {
+                        const infoRow = document.createElement('div');
+                        infoRow.className = 'info-row';
+                        infoRow.innerHTML = `
+                            <span class="info-label">${key}:</span>
+                            <span class="info-value">${value}</span>
+                        `;
+                        attractionInfo.appendChild(infoRow);
+                    });
+                }
+
+                // Устанавливаем ссылку на Википедию
+                wikipediaBtn.href = attraction.wikipedia;
+
+                // Заполняем галерею
+                modalGallery.innerHTML = '';
+                if (attraction.images && attraction.images.length > 0) {
+                    attraction.images.forEach(img => {
+                        const galleryImg = document.createElement('img');
+                        galleryImg.src = img;
+                        galleryImg.alt = attraction.name;
+                        galleryImg.onerror = function() {
+                            this.style.display = 'none';
+                        };
+                        galleryImg.addEventListener('click', () => {
+                            const mainImage = modalImageContainer.querySelector('img');
+                            if (mainImage) {
+                                mainImage.src = img;
+                            }
+                        });
+                        modalGallery.appendChild(galleryImg);
+                    });
+                }
+
+                // Показываем модальное окно
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Блокируем прокрутку страницы
+            }
+        };
+
+        // Функция закрытия модального окна
+        function closeModalWindow() {
+            modalOverlay.classList.remove('active');
+            document.body.style.overflow = ''; // Восстанавливаем прокрутку страницы
+        }
+
+        // Обработчики закрытия модального окна
+        closeModal.addEventListener('click', closeModalWindow);
+        closeModalBtn.addEventListener('click', closeModalWindow);
+
+        // Закрытие модального окна при клике на затемненную область
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModalWindow();
+            }
+        });
+
+        // Закрытие модального окна при нажатии Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                closeModalWindow();
+            }
+        });
+
+        // Кнопка "Показать на карте"
+        showOnMap.addEventListener('click', () => {
+            if (currentAttractionId) {
+                const attraction = attractions.find(a => a.id === currentAttractionId);
+                if (attraction && attraction.marker) {
+                    // Закрываем модальное окно
+                    closeModalWindow();
+
+                    // Открываем попап маркера и центрируем карту
+                    attraction.marker.openPopup();
+                    map.setView(attraction.marker.getLatLng(), 10, {
+                        animate: true
+                    });
+                }
+            }
+        });
+
+        // Обработчики фильтров
+        document.querySelectorAll('.filter-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Убрать активный класс со всех кнопок
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Добавить активный класс к нажатой кнопке
+                this.classList.add('active');
+
+                const filter = this.getAttribute('data-filter');
+
+                // Очистить все слои маркеров
+                Object.values(markerGroups).forEach(group => {
+                    map.removeLayer(group);
+                });
+
+                // Добавить выбранный слой маркеров
+                if (filter === 'all') {
+                    map.addLayer(markerGroups.all);
+                } else {
+                    map.addLayer(markerGroups[filter]);
+                }
+
+                // Обновить список достопримечательностей
+                renderAttractionsList(filter);
+            });
+        });
+
+        // Обработчик поиска
+        document.getElementById('search').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+
+            // Фильтрация маркеров
+            markerGroups.all.eachLayer(marker => {
+                const popupContent = marker.getPopup().getContent().toLowerCase();
+                if (popupContent.includes(searchTerm)) {
+                    markerGroups.all.addLayer(marker);
+                } else {
+                    markerGroups.all.removeLayer(marker);
+                }
+            });
+
+            // Фильтрация списка
+            const attractionItems = document.querySelectorAll('.attraction-item');
+            attractionItems.forEach(item => {
+                const title = item.querySelector('h3').textContent.toLowerCase();
+                const description = item.querySelector('p').textContent.toLowerCase();
+
+                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
